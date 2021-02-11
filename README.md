@@ -8,7 +8,7 @@ YouTube Downloader without deciphering any urls. This downloader using a headles
 ## Usage
 
 Start requesting the Video info
-```
+```javascript
 const ytdlNightmare = require("ytdl-nightmare");
 ytdlNightmare.info('[YouTubeID]').then((info) => {
 // info
@@ -16,7 +16,7 @@ ytdlNightmare.info('[YouTubeID]').then((info) => {
 ```
 
 After you got the info you can use it to download the file
-```
+```javascript
 const ytdlNightmare = require("ytdl-nightmare");
 ytdlNightmare.info('[YouTubeID]', {
   type: "audio" // downloads the Audio since YouTube split the audio and video part

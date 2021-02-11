@@ -3,7 +3,7 @@ YouTube Downloader without deciphering any urls. This downloader using a headles
 
 ## Installation
 
-`npm install --save git+https://github.com/mh4ck/ytdl-nightmare.git`
+`$ npm install --save git+https://github.com/mh4ck/ytdl-nightmare.git`
 
 ## Usage
 

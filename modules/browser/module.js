@@ -1,27 +1,9 @@
 const Nightmare = require("nightmare");
-const mime = require("mime");
+const url = require("url");
 require(__dirname + "/nightmare-load-filter")(Nightmare);
+require(__dirname + "/nightmare-onbeforesendheaders")(Nightmare);
 const formats = require(__dirname + "/../formats");
 const baseUrl = "https://www.youtube.com/watch?v=";
-
-Nightmare.action(
-  "onBeforeSendHeaders",
-  //define the action to run inside Electron
-  function (name, options, parent, win, renderer, done) {
-    win.webContents.session.webRequest.onBeforeSendHeaders((details, cb) => {
-      // call our event handler
-      parent.call("onBeforeSendHeaders", details, (res) => {
-        res ? cb(Object.assign({}, res)) : cb({ cancel: false });
-      });
-    });
-    done();
-  },
-  function (handler, done) {
-    // listen for "onBeforeSendHeaders" events
-    this.child.respondTo("onBeforeSendHeaders", handler);
-    done();
-  }
-);
 
 /**
  * Requesting the videostream url from a YouTube video
@@ -67,49 +49,42 @@ exports.get = (id, opts) => {
           //cancel a specific file
           return cb({
             cancel:
-              details.url.indexOf(".jpg") !== -1 ||
-              details.url.indexOf(".png") !== -1 ||
-              details.url.indexOf(".webm") !== -1 ||
-              details.url.indexOf(".webp") !== -1 ||
-              details.url.indexOf(".ico") !== -1 ||
-              details.url.indexOf(".css") !== -1 ||
-              details.url.indexOf(".svg") !== -1 ||
+              details.type == "manifest" ||
               details.type == "style" ||
               details.type == "png" ||
-              details.type == "svg" ||
-              details.type == "ico" ||
-              details.type == "jpg" ||
+              details.type == "gif" ||
+              details.type == "svg+xml" ||
+              details.type == "x-ico" ||
               details.type == "jpeg",
           });
         }
       )
       .onBeforeSendHeaders((details, cb) => {
-        let parsedDetailsUrl = new URL();
-        if (typeof details.url != "undefined") {
-          parsedDetailsUrl = new URL(details.url);
+        let parsedDetailsUrl = new URL(details.url);
+
+        if (parsedDetailsUrl.pathname != "/videoplayback" && !videoPlaybackReceived) {
+          cb({ cancel: false });
+          return;
         }
 
-        if (parsedDetailsUrl.pathname == "/videoplayback" && !videoPlaybackReceived) {
-          let itag = parsedDetailsUrl.searchParams.get("itag");
+        let itag = parsedDetailsUrl.searchParams.get("itag");
 
-          if (options.type == "audio" && formats.hasAudio(itag)) {
-            videoPlaybackReceived = true;
-            videoUrl = details.url;
-          }
-
-          if (options.type == "video" && formats.hasVideo(itag)) {
-            videoPlaybackReceived = true;
-            videoUrl = details.url;
-          }
-
-          if (formats.hasVideo(itag) && formats.hasAudio(itag)) isAudioVideo = true;
+        if (options.type == "audio" && formats.hasAudio(itag)) {
+          videoPlaybackReceived = true;
+          videoUrl = parsedDetailsUrl.href;
         }
+
+        if (options.type == "video" && formats.hasVideo(itag)) {
+          videoPlaybackReceived = true;
+          videoUrl = parsedDetailsUrl.href;
+        }
+
+        if (formats.hasVideo(itag) && formats.hasAudio(itag)) isAudioVideo = true;
 
         if (videoPlaybackReceived) {
           cb({ cancel: true });
           return;
         }
-        cb({ cancel: false });
       })
       .header("cookie", options.requestOptions.headers.cookie)
       .header("user-agent", options.requestOptions.headers["user-agent"])

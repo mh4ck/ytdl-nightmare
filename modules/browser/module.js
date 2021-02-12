@@ -1,6 +1,7 @@
 const Nightmare = require("nightmare");
 const mime = require("mime");
 require(__dirname + "/nightmare-load-filter")(Nightmare);
+const formats = require(__dirname + "/../formats");
 const baseUrl = "https://www.youtube.com/watch?v=";
 
 Nightmare.action(
@@ -45,7 +46,7 @@ exports.get = (id, opts) => {
   return new Promise((resolve, reject) => {
     let videoPlaybackReceived = false;
     let videoUrl = null;
-    let requestHeaders = null;
+    let isAudioVideo = false;
     let startTime = Date.now() / 1000;
 
     let nightmare = new Nightmare({
@@ -83,18 +84,27 @@ exports.get = (id, opts) => {
         }
       )
       .onBeforeSendHeaders((details, cb) => {
-        if (
-          details.url.indexOf("videoplayback") !== -1 &&
-          details.url.indexOf("mime=" + options.type) !== -1 &&
-          details.url.indexOf("&range") !== -1 &&
-          !videoPlaybackReceived
-        ) {
-          videoPlaybackReceived = true;
-          videoUrl = details.url;
-          requestHeaders = details.headers;
-          cb({ cancel: true });
-          return;
+        let parsedDetailsUrl = new URL();
+        if (typeof details.url != "undefined") {
+          parsedDetailsUrl = new URL(details.url);
         }
+
+        if (parsedDetailsUrl.pathname == "/videoplayback" && !videoPlaybackReceived) {
+          let itag = parsedDetailsUrl.searchParams.get("itag");
+
+          if (options.type == "audio" && formats.hasAudio(itag)) {
+            videoPlaybackReceived = true;
+            videoUrl = details.url;
+          }
+
+          if (options.type == "video" && formats.hasVideo(itag)) {
+            videoPlaybackReceived = true;
+            videoUrl = details.url;
+          }
+
+          if (formats.hasVideo(itag) && formats.hasAudio(itag)) isAudioVideo = true;
+        }
+
         if (videoPlaybackReceived) {
           cb({ cancel: true });
           return;
@@ -113,6 +123,7 @@ exports.get = (id, opts) => {
         response.playerResponse = ytInitialPlayerResponse;
         let endTime = Date.now() / 1000;
         response.videoUrl = videoUrl;
+        response.isAudioVideo = isAudioVideo;
         response.requestTime = endTime - startTime;
         resolve(response);
       })

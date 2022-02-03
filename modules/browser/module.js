@@ -27,7 +27,9 @@ exports.get = (id, opts) => {
 
   return new Promise((resolve, reject) => {
     let videoPlaybackReceived = false;
+    let audioPlaybackReceived = false;
     let videoUrl = null;
+    let audioUrl = null;
     let isAudioVideo = false;
     let startTime = Date.now() / 1000;
 
@@ -69,19 +71,19 @@ exports.get = (id, opts) => {
 
         let itag = parsedDetailsUrl.searchParams.get("itag");
 
-        if (options.type == "audio" && formats.hasAudio(itag)) {
-          videoPlaybackReceived = true;
-          videoUrl = parsedDetailsUrl.href;
+        if (formats.hasAudio(itag)) {
+          audioPlaybackReceived = true;
+          audioUrl = parsedDetailsUrl.href;
         }
 
-        if (options.type == "video" && formats.hasVideo(itag)) {
+        if (formats.hasVideo(itag)) {
           videoPlaybackReceived = true;
           videoUrl = parsedDetailsUrl.href;
         }
 
         if (formats.hasVideo(itag) && formats.hasAudio(itag)) isAudioVideo = true;
 
-        if (videoPlaybackReceived) {
+        if (videoPlaybackReceived && audioPlaybackReceived) {
           cb({ cancel: true });
           return;
         }
@@ -98,6 +100,7 @@ exports.get = (id, opts) => {
         response.playerResponse = ytInitialPlayerResponse;
         let endTime = Date.now() / 1000;
         response.videoUrl = videoUrl;
+        response.audioUrl = audioUrl;
         response.isAudioVideo = isAudioVideo;
         response.requestTime = endTime - startTime;
         resolve(response);

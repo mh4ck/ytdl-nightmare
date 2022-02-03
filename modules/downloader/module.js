@@ -6,29 +6,79 @@ const path = require("path");
 const sanitize = require("sanitize-filename");
 const utils = require(__dirname + "/../utils");
 
-const getVideoStream = (title, mimeType, path) => {
+const getFileStream = (title, mimeType, path) => {
   let videoName = sanitize(title.toLowerCase());
   videoName = utils.filename(videoName);
   let videoExtension = mime.getExtension(mimeType);
   let videoPath = path + "/" + videoName + "." + videoExtension;
-  let videoStream = fs.createWriteStream(videoPath);
-  return videoStream;
+  let fileStream = fs.createWriteStream(videoPath);
+  return fileStream;
 };
 
-exports.run = (response, filepath) => {
+exports.run = (response, directory, audioOnly) => {
+  audioOnly = audioOnly || false;
   return new Promise((resolve, reject) => {
-    if (typeof response.videoUrl == "undefined") {
+    if (typeof response.videoUrl == "undefined" || typeof response.videoUrl == null) {
       reject(new Error("Can't download from undefined"));
       return;
     }
-    let parsedUrl = new URL(response.videoUrl);
 
+    if (audioOnly && response.audioUrl != null) {
+      exports
+        .fetchAudio(response, directory)
+        .then((response) => {
+          resolve({
+            fullpathAudio: response.fullpath,
+            filenameAudio: response.filename,
+          });
+        })
+        .catch(reject);
+      return;
+    }
+
+    let promises = [];
+    promises.push(exports.fetchVideo(response, directory));
+    if (response.audioUrl != null) promises.push(exports.fetchAudio(response, directory));
+    Promise.all(promises).then((responses) => {
+      let response = {};
+      response.fullpathVideo = responses[0].fullpath;
+      response.filenameVideo = responses[0].filename;
+      if (typeof responses[1] != "undefined") {
+        response.fullpathAudio = responses[1].fullpath;
+        response.filenameAudio = responses[1].filename;
+      }
+      resolve(response);
+    });
+  });
+};
+
+exports.fetchVideo = (response, directory) => {
+  return new Promise((resolve, reject) => {
+    let parsedUrl = new URL(response.videoUrl);
     parsedUrl.searchParams.set("range", "0-10380331");
-    let videoStream = getVideoStream(response.playerResponse.videoDetails.title, parsedUrl.searchParams.get("mime"), filepath);
+    let fileStream = getFileStream(response.playerResponse.videoDetails.title, parsedUrl.searchParams.get("mime"), directory);
 
     const gotCallback = (gotResponse) => {
       if (gotResponse.headers["content-type"].indexOf("text/plain") == -1) {
-        exports.runPartials(gotResponse.requestUrl, videoStream, 0, resolve, reject);
+        exports.runPartials(gotResponse.requestUrl, fileStream, 0, resolve, reject);
+        return;
+      }
+      got(gotResponse.body).then(gotCallback).catch(reject);
+    };
+
+    got(parsedUrl.href).then(gotCallback).catch(reject);
+  });
+};
+
+exports.fetchAudio = (response, directory) => {
+  return new Promise((resolve, reject) => {
+    let parsedUrl = new URL(response.audioUrl);
+    parsedUrl.searchParams.set("range", "0-10380331");
+    let fileStream = getFileStream(response.playerResponse.videoDetails.title, parsedUrl.searchParams.get("mime"), directory);
+
+    const gotCallback = (gotResponse) => {
+      if (gotResponse.headers["content-type"].indexOf("text/plain") == -1) {
+        exports.runPartials(gotResponse.requestUrl, fileStream, 0, resolve, reject);
         return;
       }
       got(gotResponse.body).then(gotCallback).catch(reject);

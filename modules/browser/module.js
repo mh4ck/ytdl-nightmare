@@ -4,6 +4,17 @@ require(__dirname + "/nightmare-load-filter")(Nightmare);
 require(__dirname + "/nightmare-onbeforesendheaders")(Nightmare);
 const formats = require(__dirname + "/../formats");
 const baseUrl = "https://www.youtube.com/watch?v=";
+const config = {
+  electronPath: `${__dirname}/../../node_modules/electron`,
+};
+
+/**
+ * Set the config for the nightmare instances
+ * @param {Object} cfg
+ */
+exports.config = (cfg) => {
+  config = { ...config, ...cfg };
+};
 
 /**
  * Requesting the videostream url from a YouTube video
@@ -40,6 +51,7 @@ exports.get = (id, opts) => {
         "ignore-certificate-errors": true,
       },
       openDevTools: false,
+      electronPath: require(config.electronPath),
     });
 
     nightmare

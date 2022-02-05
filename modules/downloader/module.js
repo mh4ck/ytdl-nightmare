@@ -6,11 +6,11 @@ const path = require("path");
 const sanitize = require("sanitize-filename");
 const utils = require(__dirname + "/../utils");
 
-const getFileStream = (title, mimeType, path) => {
+const getFileStream = (title, mimeType, outputFolder) => {
   let videoName = sanitize(title.toLowerCase());
   videoName = utils.filename(videoName);
   let videoExtension = mime.getExtension(mimeType);
-  let videoPath = path + "/" + videoName + "." + videoExtension;
+  let videoPath = path.join(outputFolder, videoName + "." + videoExtension);
   let fileStream = fs.createWriteStream(videoPath);
   return fileStream;
 };

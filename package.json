@@ -13,7 +13,6 @@
     "got": "^11.8.1",
     "mime": "^2.5.0",
     "nightmare": "^3.0.2",
-    "sanitize-filename": "^1.6.3",
-    "ytdl-core": "^4.4.5"
+    "sanitize-filename": "^1.6.3"
   }
 }

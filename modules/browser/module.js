@@ -4,9 +4,7 @@ require(__dirname + "/nightmare-load-filter")(Nightmare);
 require(__dirname + "/nightmare-onbeforesendheaders")(Nightmare);
 const formats = require(__dirname + "/../formats");
 const baseUrl = "https://www.youtube.com/watch?v=";
-let config = {
-  electronPath: `${__dirname}/../../node_modules/electron`,
-};
+let config = {};
 
 /**
  * Set the config for the nightmare instances
@@ -44,15 +42,18 @@ exports.get = (id, opts) => {
     let isAudioVideo = false;
     let startTime = Date.now() / 1000;
 
-    let nightmare = new Nightmare({
+    let initialconfig = {
       show: false,
       switches: {
         "proxy-server": options.requestOptions.proxy,
         "ignore-certificate-errors": true,
       },
       openDevTools: false,
-      electronPath: require(config.electronPath),
-    });
+    };
+
+    config = { ...config, ...initialconfig };
+
+    let nightmare = new Nightmare(config);
 
     nightmare
       .filter(

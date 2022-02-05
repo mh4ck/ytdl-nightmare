@@ -4,7 +4,7 @@ require(__dirname + "/nightmare-load-filter")(Nightmare);
 require(__dirname + "/nightmare-onbeforesendheaders")(Nightmare);
 const formats = require(__dirname + "/../formats");
 const baseUrl = "https://www.youtube.com/watch?v=";
-const config = {
+let config = {
   electronPath: `${__dirname}/../../node_modules/electron`,
 };
 
